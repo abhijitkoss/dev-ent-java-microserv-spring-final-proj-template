@@ -3,6 +3,8 @@ package com.hinkmond.finalproj;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+
 
 
 @RestController
@@ -43,6 +45,13 @@ public class JDBCController {
     @RequestMapping(value = "/addUser", method = RequestMethod.POST)
     public String addUser(@RequestBody AddUserData addUserData) {
         JdbcTemplate jdbcTemplate = JDBCConnector.getJdbcTemplate();
+        System.err.println("/addUser" +
+                        "'" + addUserData.getFirstName() + "'," +
+                        "'" + addUserData.getLastName() + "'," +
+                        "'" + addUserData.getAddress() + "'," +
+                        "'" + addUserData.getEmail() + "'"
+                );
+
         String queryStr = "INSERT INTO user_info (first_name, last_name, addr, email) " +
                 "VALUES (" +
                 "'" + addUserData.getFirstName() + "'," +
@@ -69,5 +78,44 @@ public class JDBCController {
                     .append("\n");
         }
         return ("SELECT * from acct_info:\n" + resultStr);
+    }
+
+    @CrossOrigin
+    @RequestMapping(value = "/getUserInfo", method = RequestMethod.GET)
+    @ResponseBody
+    public UserInfo getUserInfo() {
+        UserInfo userInfo = new UserInfo();
+
+        // Default: Error
+        userInfo.setHttpStatus(HttpStatus.BAD_REQUEST);
+
+        // Processing Logic (override HttpsStatus if everything is OK)
+        userInfo.setUserId("12345678");
+        userInfo.setFirstName("J.");
+        userInfo.setLastName("Jones");
+        userInfo.setEmail("jjones@gmail.com");
+        userInfo.setHttpStatus(HttpStatus.OK);
+
+        return (userInfo);
+    }
+
+    @CrossOrigin
+    @SuppressWarnings("SqlResolve")
+    @RequestMapping(value = "/updateUserInfo", method = RequestMethod.POST)
+    public HttpStatus updateUserInfo() {
+        JdbcTemplate jdbcTemplate = JDBCConnector.getJdbcTemplate();
+        String queryStr = "INSERT INTO user_info (first_name, last_name, addr, email) " +
+                "VALUES (" +
+                "'Jim'," +
+                "'Doe'," +
+                "'789 Front St.'," +
+                "'jimdoe@gmail.com'" +
+                ");";
+        int rowsUpdated = jdbcTemplate.update(queryStr);
+        HttpStatus status = HttpStatus.BAD_REQUEST;
+        if (rowsUpdated > 0) {
+            status = HttpStatus.OK;
+        }
+        return (status);
     }
 }
