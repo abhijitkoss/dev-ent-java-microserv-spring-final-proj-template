@@ -1,6 +1,6 @@
 # Credit Card User Microservices
 
-### Spring Final Project 
+### Spring Final Project (Work In Progress)
 
 This project seeks to improve our understanding of Spring Micro Services by extending the skeleton Credit Card User code. Beyond the existing printAllUsers and addUser microservices the following microservices will be implemented:
 
