@@ -129,6 +129,7 @@ public class JDBCController {
             return status;
         }
 
+        // Retrieve credit limit and balance fromm acct_info
         String queryStr = "SELECT credit_limit, balance FROM acct_info WHERE  acct_num = " +
                 acctNum  + " LIMIT 1;";
         SqlRowSet sqlRowSet = jdbcTemplate.queryForRowSet(queryStr);
@@ -142,7 +143,7 @@ public class JDBCController {
                 // The new balance would exceed the credit limit - hence the transaction cannot be allowed
                 return status;
             }
-            // Update the current balance in the acct_info table in the database
+            // Update the balance in the acct_info table in the database to the new balance
             queryStr = "UPDATE acct_info SET balance = " + newBalance + " WHERE acct_num = " + acctNum + ";";
             System.err.println("\n[*DBG*] makePurchase: Update acct_info SqlString to send:\n" + queryStr);
 
@@ -164,7 +165,8 @@ public class JDBCController {
             }
 
         } else {
-            System.err.println("[*DBG*] makePurchase: Acct_info: acct_num: " + acctNum + " could not be retrieved");
+            // Log error - so admin can send us useful info for debugging
+            System.err.println("makePurchase: Acct_info: acct_num: " + acctNum + " could not be retrieved");
             return status;
         }
 
@@ -199,6 +201,7 @@ public class JDBCController {
             return status;
         }
 
+        // Retrieve balance fromm acct_info
         String queryStr = "SELECT balance FROM acct_info WHERE  acct_num = " +
                 acctNum  + " LIMIT 1;";
         System.err.println("\n[*DBG*] makePayment: SELECT balance from acct info SqlString to send:\n" + queryStr);
@@ -209,7 +212,8 @@ public class JDBCController {
             System.err.println("[*DBG*] makePayment: Acct_info: acct_num: " + acctNum +  ",  balance: " + balance);
 
             double newBalance = balance - amount; // Note - it is OK for this to go negative. i.e. payment > balance
-            // Update the current balance in the acct_info table in the database
+
+            // Update the  balance in the acct_info table in the database to the new balance
             queryStr = "UPDATE acct_info SET balance = " + newBalance + " WHERE acct_num = " + acctNum + ";";
             System.err.println("\n[*DBG*] makePayment: Update acct_info SqlString to send:\n" + queryStr);
 
@@ -231,7 +235,8 @@ public class JDBCController {
             }
 
         } else {
-            System.err.println("[*DBG*] makePayment: Acct_info: acct_num: " + acctNum + " could not be retrieved");
+            // Log error - so admin can send us useful info for debugging
+            System.err.println("makePayment: Acct_info: acct_num: " + acctNum + " could not be retrieved");
             return status;
         }
 
@@ -247,6 +252,7 @@ public class JDBCController {
 
         int acctNum = acctNumber.getAcctNum();
 
+        // First retrieve interest rate and balance from acct_info for fees calculation
         String queryStr = "SELECT interest_rate, balance FROM acct_info WHERE  acct_num = " +
                 acctNum  + " LIMIT 1;";
         System.err.println("\n[*DBG*] assessFees: Select interest rate, balamce acct_info SqlString to send:\n" + queryStr);
@@ -262,7 +268,7 @@ public class JDBCController {
             // To keep things simple we will calculate fees as monthly interest on the current balance if balance > 0
             double fees = (balance > 0) ? ((balance * (interestRate/100.0 ) ) / 12.0) : 0;
 
-            // Update the current balance in the acct_info table in the database
+            // Update the fees in the acct_info table for this account
             queryStr = "UPDATE acct_info SET fees = " + fees + " WHERE acct_num = " + acctNum + ";";
             System.err.println("\n[*DBG*] assessFees: Update acct_info SqlString to send:\n" + queryStr);
 
@@ -275,7 +281,8 @@ public class JDBCController {
             status = HttpStatus.OK;
 
         } else {
-            System.err.println("[*DBG*] assessFees: Acct_info: acct_num: " + acctNum + " could not be retrieved");
+            // Log error - so admin can send us useful info for debugging
+            System.err.println("assessFees: Acct_info: acct_num: " + acctNum + " could not be retrieved");
             return status;
         }
 
@@ -293,6 +300,7 @@ public class JDBCController {
 
         int userId = userIdNum.getUserId();
 
+        // First retrieve the user info
         String queryStr = "SELECT first_name, last_name, addr, phone, email FROM user_info WHERE  user_id = " +
                 userId  + " LIMIT 1;";
         System.err.println("\n[*DBG*] printStatement: Select user_info SqlString to send:\n" + queryStr);
@@ -308,7 +316,7 @@ public class JDBCController {
 
             // Retrieve the user's account info
             queryStr = "SELECT acct_num, fees, balance FROM acct_info WHERE  user_id = " +
-                    userId  + " LIMIT 1;";
+                    userId + " LIMIT 1;";
             System.err.println("\n[*DBG*] printStatement: Select acct_info SqlString to send:\n" + queryStr);
             sqlRowSet = jdbcTemplate.queryForRowSet(queryStr);
 
@@ -323,16 +331,17 @@ public class JDBCController {
 
                 double fullPayment = fees + balance;
                 resultStr.append("\n\nAccount Summary:\n");
-                resultStr.append(    "-----------------\n");
+                resultStr.append("-----------------\n");
                 resultStr.append("\n\tBalance:\t\t").append(balance);
                 resultStr.append("\n\tMinimum Payment Due:\t").append(fees);
                 resultStr.append("\n\tFull Balance Due:\t").append(fullPayment);
                 resultStr.append("\n\nTransactions:");
-                resultStr.append(  "\n-------------\n\n");
+                resultStr.append("\n-------------\n\n");
                 resultStr.append("\tDate\t\tDescription\t\t\t\tType\t\tAmount\n\n");
 
+                // Now retrieve transactions for the account from the transactions table
                 queryStr = "SELECT year, month, day, description, is_credit, amount from transactions_info WHERE acct_num = " +
-                        acctNum  + ";";
+                        acctNum + ";";
                 System.err.println("\n[*DBG*] printStatement: Select transactions_info SqlString to send:\n" + queryStr);
                 sqlRowSet = jdbcTemplate.queryForRowSet(queryStr);
                 while (sqlRowSet.next()) {
@@ -353,8 +362,7 @@ public class JDBCController {
             }
 
 
-            } else {
-            System.err.println("[*DBG*] printStatement: User_info: user_id: " + userId + " could not be retrieved");
+        } else {
             return "\nCredit Card Account Statement cannot be made for a non-existent user";
         }
 
